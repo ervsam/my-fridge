@@ -38,17 +38,21 @@ function ImageContainer() {
     };
   }, []);
 
-  const handleImageUpload = (event) => {
-    const newImage = event.target.files[0];
-    const reader = new FileReader();
-    reader.readAsDataURL(newImage);
-    reader.onload = async () => {
-      const imageDataUrl = reader.result;
-      const db = await openDB("fridge", 1);
-      await db.add("images", { dataUrl: imageDataUrl });
-      const imagesFromDB = await db.getAll("images");
-      setImages(imagesFromDB.map((image) => image.dataUrl));
-    };
+  const handleImageUpload = async (event) => {
+    const newImages = event.target.files;
+
+    for (let i = 0; i < newImages.length; i++) {
+      const newImage = newImages[i];
+      const reader = new FileReader();
+      reader.readAsDataURL(newImage);
+      reader.onload = async () => {
+        const imageDataUrl = reader.result;
+        const db = await openDB("fridge", 1);
+        await db.add("images", { dataUrl: imageDataUrl });
+        const imagesFromDB = await db.getAll("images");
+        setImages(imagesFromDB.map((image) => image.dataUrl));
+      };
+    }
   };
 
   const handleOpenFridge = () => {
@@ -86,7 +90,7 @@ function ImageContainer() {
               style={{ display: "none" }}
               id="contained-button-file"
               onChange={handleImageUpload}
-              // multiple
+              multiple
             />
             <label htmlFor="contained-button-file">
               <Button
