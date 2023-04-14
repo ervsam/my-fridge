@@ -6,29 +6,24 @@ function ImageContainer() {
   const [images, setImages] = useState([]);
   const [fridgeOpen, setFridgeOpen] = useState(false);
 
+  useEffect(() => {
+    const storedImages = localStorage.getItem("images");
+    if (storedImages) {
+      setImages(JSON.parse(storedImages));
+    }
+  }, []);
+
   const handleImageUpload = (event) => {
     const newImage = event.target.files[0];
-    setImages([...images, newImage]);
+    const reader = new FileReader();
+    reader.readAsDataURL(newImage);
+    reader.onload = () => {
+      const imageDataUrl = reader.result;
+
+      localStorage.setItem("images", JSON.stringify([...images, imageDataUrl]));
+      setImages([...images, imageDataUrl]);
+    };
   };
-
-  // useEffect(() => {
-  //   const storedImages = localStorage.getItem("images");
-  //   if (storedImages) {
-  //     setImages(JSON.parse(storedImages));
-  //   }
-  // }, []);
-
-  // const handleImageUpload = (event) => {
-  //   const newImage = event.target.files[0];
-  //   const reader = new FileReader();
-  //   reader.readAsDataURL(newImage);
-  //   reader.onload = () => {
-  //     const imageDataUrl = reader.result;
-
-  //     localStorage.setItem("images", JSON.stringify([...images, imageDataUrl]));
-  //     setImages([...images, imageDataUrl]);
-  //   };
-  // };
 
   const handleOpenFridge = () => {
     setFridgeOpen(true);
@@ -106,8 +101,7 @@ function ImageContainer() {
                 <Card>
                   <CardMedia
                     component="img"
-                    image={URL.createObjectURL(image)}
-                    // image={image}
+                    image={image}
                     alt={`Food ${index}`}
                   />
                 </Card>
