@@ -7,6 +7,9 @@ function ImageContainer() {
   const [images, setImages] = useState([]);
   const [fridgeOpen, setFridgeOpen] = useState(false);
 
+  const [freezerOpen, setFreezerOpen] = useState(false);
+  const [freezerImages, setFreezerImages] = useState([]);
+
   useEffect(() => {
     const request = indexedDB.open("fridge", 1);
 
@@ -26,6 +29,15 @@ function ImageContainer() {
         // Set the images state with the data retrieved from IndexedDB
         setImages(event.target.result.map((image) => image.dataUrl));
       };
+
+      const freezerTransaction = db.transaction("freezer", "readonly");
+      const freezerObjectStore = freezerTransaction.objectStore("freezer");
+      const freezerRequest = freezerObjectStore.getAll();
+
+      freezerRequest.onsuccess = (event) => {
+        // Set the images state with the data retrieved from IndexedDB
+        setFreezerImages(event.target.result.map((image) => image.dataUrl));
+      };
     };
 
     request.onupgradeneeded = (event) => {
@@ -35,8 +47,37 @@ function ImageContainer() {
         keyPath: "id",
         autoIncrement: true,
       });
+      db.createObjectStore("freezer", {
+        keyPath: "id",
+        autoIncrement: true,
+      });
     };
   }, []);
+
+  const handleOpenFreezer = () => {
+    setFreezerOpen(true);
+  };
+
+  const handleCloseFreezer = () => {
+    setFreezerOpen(false);
+  };
+
+  const handleImageUploadToFreezer = async (event) => {
+    const newImages = event.target.files;
+
+    for (let i = 0; i < newImages.length; i++) {
+      const newImage = newImages[i];
+      const reader = new FileReader();
+      reader.readAsDataURL(newImage);
+      reader.onload = async () => {
+        const imageDataUrl = reader.result;
+        const db = await openDB("fridge", 1);
+        await db.add("freezer", { dataUrl: imageDataUrl });
+        const imagesFromDB = await db.getAll("freezer");
+        setFreezerImages(imagesFromDB.map((image) => image.dataUrl));
+      };
+    }
+  };
 
   const handleImageUpload = async (event) => {
     const newImages = event.target.files;
@@ -48,9 +89,16 @@ function ImageContainer() {
       reader.onload = async () => {
         const imageDataUrl = reader.result;
         const db = await openDB("fridge", 1);
-        await db.add("images", { dataUrl: imageDataUrl });
-        const imagesFromDB = await db.getAll("images");
-        setImages(imagesFromDB.map((image) => image.dataUrl));
+
+        if (fridgeOpen) {
+          await db.add("images", { dataUrl: imageDataUrl });
+          const imagesFromDB = await db.getAll("images");
+          setImages(imagesFromDB.map((image) => image.dataUrl));
+        } else if (freezerOpen) {
+          await db.add("freezer", { dataUrl: imageDataUrl });
+          const imagesFromDB = await db.getAll("freezer");
+          setFreezerImages(imagesFromDB.map((image) => image.dataUrl));
+        }
       };
     }
   };
@@ -67,7 +115,11 @@ function ImageContainer() {
     <div
       style={{
         background: `url(${
-          fridgeOpen ? "./fridge_open.jpg" : "./fridge_closed.jpg"
+          fridgeOpen
+            ? "./fridge_open.jpg"
+            : freezerOpen
+            ? "./freezer_open.jpg"
+            : "./fridge_closed.jpg"
         }) no-repeat center center fixed`,
         backgroundSize: "cover",
         backgroundAttachment: "fixed",
@@ -102,20 +154,85 @@ function ImageContainer() {
               </Button>
             </label>
           </div>
-        ) : (
-          <div
-            style={{
-              position: "fixed",
-              top: "500px",
-              left: "30px",
-              right: "0",
-            }}
-          >
-            <Button variant="contained" onClick={handleOpenFridge}>
-              Open Fridge
+        ) : freezerOpen ? (
+          <div>
+            <Button
+              variant="contained"
+              onClick={handleCloseFreezer}
+              sx={{ mr: 2, mt: 2 }}
+            >
+              Close Freezer
             </Button>
+            <input
+              accept="image/*"
+              type="file"
+              style={{ display: "none" }}
+              id="contained-button-file"
+              onChange={handleImageUpload}
+              multiple
+            />
+            <label htmlFor="contained-button-file">
+              <Button
+                variant="contained"
+                component="span"
+                sx={{ mr: 2, mt: 2 }}
+              >
+                Add Food
+              </Button>
+            </label>
+          </div>
+        ) : (
+          <div>
+            <div
+              style={{
+                position: "fixed",
+                top: "250px",
+                left: "30px",
+                right: "0",
+              }}
+            >
+              <Button variant="contained" onClick={handleOpenFreezer}>
+                Open Freezer
+              </Button>
+            </div>
+            <div
+              style={{
+                position: "fixed",
+                top: "500px",
+                left: "30px",
+                right: "0",
+              }}
+            >
+              <Button variant="contained" onClick={handleOpenFridge}>
+                Open Fridge
+              </Button>
+            </div>
           </div>
         )}
+
+        {freezerOpen ? (
+          <Grid
+            container
+            spacing={2}
+            sx={{
+              paddingTop: "150px",
+              paddingLeft: "400px",
+              paddingRight: "400px",
+            }}
+          >
+            {freezerImages.map((image, index) => (
+              <Grid item xs={12} sm={6} md={3} key={index}>
+                <Card>
+                  <CardMedia
+                    component="img"
+                    image={image}
+                    alt={`Food ${index}`}
+                  />
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        ) : null}
 
         {fridgeOpen ? (
           <Grid
@@ -128,7 +245,7 @@ function ImageContainer() {
             }}
           >
             {images.map((image, index) => (
-              <Grid item xs={12} sm={6} md={4} key={index}>
+              <Grid item xs={12} sm={6} md={3} key={index}>
                 <Card>
                   <CardMedia
                     component="img"
