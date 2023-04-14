@@ -31,7 +31,7 @@ function ImageContainer() {
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
       console.log("createDB");
-      const imagesStore = db.createObjectStore("images", {
+      db.createObjectStore("images", {
         keyPath: "id",
         autoIncrement: true,
       });
