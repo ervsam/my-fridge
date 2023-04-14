@@ -62,23 +62,6 @@ function ImageContainer() {
     setFreezerOpen(false);
   };
 
-  const handleImageUploadToFreezer = async (event) => {
-    const newImages = event.target.files;
-
-    for (let i = 0; i < newImages.length; i++) {
-      const newImage = newImages[i];
-      const reader = new FileReader();
-      reader.readAsDataURL(newImage);
-      reader.onload = async () => {
-        const imageDataUrl = reader.result;
-        const db = await openDB("fridge", 1);
-        await db.add("freezer", { dataUrl: imageDataUrl });
-        const imagesFromDB = await db.getAll("freezer");
-        setFreezerImages(imagesFromDB.map((image) => image.dataUrl));
-      };
-    }
-  };
-
   const handleImageUpload = async (event) => {
     const newImages = event.target.files;
 
