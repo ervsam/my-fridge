@@ -1,27 +1,53 @@
 import React, { useState, useEffect } from "react";
 import { Grid, Card, CardMedia, Button } from "@mui/material";
 import { Box } from "@mui/system";
+import { openDB } from "idb";
 
 function ImageContainer() {
   const [images, setImages] = useState([]);
   const [fridgeOpen, setFridgeOpen] = useState(false);
 
   useEffect(() => {
-    const storedImages = localStorage.getItem("images");
-    if (storedImages) {
-      setImages(JSON.parse(storedImages));
-    }
+    const request = indexedDB.open("fridge", 1);
+
+    request.onerror = (event) => {
+      console.error("Failed to open indexedDB:", event.target.error);
+    };
+
+    request.onsuccess = (event) => {
+      const db = event.target.result;
+
+      // Open a transaction to read data from the "images" object store
+      const transaction = db.transaction("images", "readonly");
+      const objectStore = transaction.objectStore("images");
+      const request = objectStore.getAll();
+
+      request.onsuccess = (event) => {
+        // Set the images state with the data retrieved from IndexedDB
+        setImages(event.target.result.map((image) => image.dataUrl));
+      };
+    };
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      console.log("createDB");
+      const imagesStore = db.createObjectStore("images", {
+        keyPath: "id",
+        autoIncrement: true,
+      });
+    };
   }, []);
 
   const handleImageUpload = (event) => {
     const newImage = event.target.files[0];
     const reader = new FileReader();
     reader.readAsDataURL(newImage);
-    reader.onload = () => {
+    reader.onload = async () => {
       const imageDataUrl = reader.result;
-
-      localStorage.setItem("images", JSON.stringify([...images, imageDataUrl]));
-      setImages([...images, imageDataUrl]);
+      const db = await openDB("fridge", 1);
+      await db.add("images", { dataUrl: imageDataUrl });
+      const imagesFromDB = await db.getAll("images");
+      setImages(imagesFromDB.map((image) => image.dataUrl));
     };
   };
 
@@ -60,6 +86,7 @@ function ImageContainer() {
               style={{ display: "none" }}
               id="contained-button-file"
               onChange={handleImageUpload}
+              // multiple
             />
             <label htmlFor="contained-button-file">
               <Button
