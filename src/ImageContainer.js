@@ -10,6 +10,16 @@ function ImageContainer() {
   const [freezerOpen, setFreezerOpen] = useState(false);
   const [freezerImages, setFreezerImages] = useState([]);
 
+  const [hoveredIndex, setHoveredIndex] = useState(null);
+
+  const handleImageHover = (index) => {
+    setHoveredIndex(index);
+  };
+
+  const handleImageLeave = () => {
+    setHoveredIndex(null);
+  };
+
   useEffect(() => {
     const request = indexedDB.open("fridge", 1);
 
@@ -83,6 +93,19 @@ function ImageContainer() {
           setFreezerImages(imagesFromDB.map((image) => image.dataUrl));
         }
       };
+    }
+  };
+
+  const handleImageDelete = async (index) => {
+    const db = await openDB("fridge", 1);
+    if (fridgeOpen) {
+      const imagesFromDB = await db.getAll("images");
+      await db.delete("images", imagesFromDB[index].id);
+      setImages(images.filter((_, i) => i !== index));
+    } else if (freezerOpen) {
+      const imagesFromDB = await db.getAll("freezer");
+      await db.delete("freezer", imagesFromDB[index].id);
+      setFreezerImages(freezerImages.filter((_, i) => i !== index));
     }
   };
 
@@ -205,12 +228,48 @@ function ImageContainer() {
           >
             {freezerImages.map((image, index) => (
               <Grid item xs={12} sm={6} md={3} key={index}>
-                <Card>
+                <Card
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    position: "relative",
+                    minHeight: "200px",
+                  }}
+                  onMouseEnter={() => handleImageHover(index)}
+                  onMouseLeave={() => handleImageLeave()}
+                >
                   <CardMedia
                     component="img"
                     image={image}
                     alt={`Food ${index}`}
                   />
+
+                  {hoveredIndex === index && (
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        top: "0",
+                        left: "0",
+                        height: "100%",
+                        width: "100%",
+                        backgroundColor: "rgba(0, 0, 0, 0.5)",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Button
+                        variant="contained"
+                        color="secondary"
+                        onClick={() => handleImageDelete(index)}
+                      >
+                        Delete
+                      </Button>
+                    </Box>
+                  )}
                 </Card>
               </Grid>
             ))}
@@ -229,12 +288,48 @@ function ImageContainer() {
           >
             {images.map((image, index) => (
               <Grid item xs={12} sm={6} md={3} key={index}>
-                <Card>
+                <Card
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    position: "relative",
+                    minHeight: "200px",
+                  }}
+                  onMouseEnter={() => handleImageHover(index)}
+                  onMouseLeave={() => handleImageLeave()}
+                >
                   <CardMedia
                     component="img"
                     image={image}
                     alt={`Food ${index}`}
                   />
+
+                  {hoveredIndex === index && (
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        top: "0",
+                        left: "0",
+                        height: "100%",
+                        width: "100%",
+                        backgroundColor: "rgba(0, 0, 0, 0.5)",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Button
+                        variant="contained"
+                        color="secondary"
+                        onClick={() => handleImageDelete(index)}
+                      >
+                        Delete
+                      </Button>
+                    </Box>
+                  )}
                 </Card>
               </Grid>
             ))}
